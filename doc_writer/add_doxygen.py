@@ -3,9 +3,6 @@ from openai import OpenAI
 import re
 import json
 
-# Replace with your actual file paths and OpenAI API key
-# openai.api_key = 'your-openai-api-key'
-
 
 def clean_code_content(code_content):
     """
@@ -87,18 +84,43 @@ def split_cpp_file(file_content, max_length):
 
     return chunks
 
-# def add_doxygen_to_chunk(chunk):
-#     """
-#     Sends a chunk to GPT-4 API to add Doxygen documentation.
-#     """
-#     prompt = f"Add Doxygen documentation to the following C++ code:\n\n{chunk}\n\n"
-#     response = openai.Completion.create(
-#         model="gpt-4",
-#         prompt=prompt,
-#         temperature=0.3,
-#         max_tokens=800
-#     )
-#     return response.choices[0].text.strip()
+def add_doxygen_json(code_content):
+    """
+    Sends code content to GPT API to add Doxygen documentation.
+    The response is in JSON format.
+    """
+    client = OpenAI()
+
+    response = client.chat.completions.create(
+    model="gpt-4-1106-preview",
+    # model='gpt-3.5-turbo-1106',
+    response_format={ "type": "json_object" },
+    messages=[
+        {
+        "role": "system",
+        "content": "You are a C++ programmer and good at writing doxygen documentation for C++ headers. \
+        The user will provide the content of a C++ header file, and you will return the code with doxygen documentation added. \
+        You are designed to output JSON with the following two fields: \
+        - code: The code with doxygen documentation added. \
+        - finished: True if you successfully finished the task, False if the output is not complete."
+        },
+        {
+        "role": "user",
+        "content": f"Add Doxygen documentation to the following C++ code: \n{code_content}"
+        }
+    ],
+    temperature=1,
+    max_tokens=4095,
+    top_p=1,
+    frequency_penalty=0,
+    presence_penalty=0
+    )
+
+    if response.choices[0].finish_reason == 'stop':
+        output = response.choices[0].message.content
+        json_output = json.loads(output)
+        if json_output['finished']:
+            return json_output['code']   
 
 def add_doxygen(code_content):
     """
@@ -110,16 +132,7 @@ def add_doxygen(code_content):
     response = client.chat.completions.create(
     model="gpt-4-1106-preview",
     # model='gpt-3.5-turbo-1106',
-    # response_format={ "type": "json_object" },
     messages=[
-        # {
-        # "role": "system",
-        # "content": "You are a C++ programmer and good at writing doxygen documentation for C++ headers. \
-        # The user will provide the content of a C++ header file, and you will return the code with doxygen documentation added. \
-        # You are designed to output JSON with the following two fields: \
-        # - code: The code with doxygen documentation added. \
-        # - finished: True if you successfully finished the task, False if the output is not complete."
-        # },
         {
         "role": "system",
         "content": "You are a C++ programmer and good at writing doxygen documentation for C++ headers. \
@@ -144,11 +157,6 @@ def add_doxygen(code_content):
         output = response.choices[0].message.content
         print(output)
         return output
-        # json_output = json.loads(output)
-        # if json_output['finished']:
-        #     return json_output['code']   
-
-    
 
 # def process_cpp_file(input_file_path, output_file_path, max_chunk_length):
 #     """
