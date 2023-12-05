@@ -2,6 +2,8 @@ import argparse
 from openai import OpenAI
 import re
 import json
+import os
+import shutil
 
 
 def clean_code_content(code_content):
@@ -151,7 +153,7 @@ def add_doxygen_multi(code_content):
 
     # While '//continue' is in the current response, continue to send requests
     iter = 0
-    max_iter = 5
+    max_iter = 10
     while '//continue' in response_list[-1] and iter < max_iter:
         print("iter: ", iter)
         iter += 1
@@ -193,32 +195,69 @@ def process_cpp_file(input_file_path, output_file_path):
     """
     Process a C++ file, adding Doxygen comments to it.
     """
+    print(input_file_path)
     with open(input_file_path, 'r') as file:
         cpp_code = file.read()
 
-    cpp_code = clean_code_content(cpp_code)
+    # cpp_code = clean_code_content(cpp_code)
     doc_code = add_doxygen_multi(cpp_code)
     if doc_code:
         with open(output_file_path, 'w') as file:
             file.write(doc_code)
 
+def process_source_dir(input_dir_path, output_dir_path):
+    """
+    Recursively process all C++ header files in a directory, adding Doxygen comments to them.
+    Save the processed files to the output directory (preserving the directory structure).
+    """
+    for root, dirs, files in os.walk(input_dir_path):
+        # Determine the path in the output directory
+        output_root = os.path.join(output_dir_path, os.path.relpath(root, input_dir_path))
+
+        # Ensure the output directory exists
+        if not os.path.exists(output_root):
+            os.makedirs(output_root)
+
+        for file in files:
+            if file.endswith('.h'):  # Process C++ header files
+                input_file_path = os.path.join(root, file)
+                output_file_path = os.path.join(output_root, file)
+                if not os.path.exists(output_file_path):
+                    process_cpp_file(input_file_path, output_file_path)
+            else:
+                # Copy other files to the output directory
+                shutil.copy(os.path.join(root, file), output_root)
+    
+
 def main():
     parser = argparse.ArgumentParser(description="Generate doxygen documentation for C++ header.")
-    parser.add_argument('FilePath',
+    parser.add_argument('in_path',
                         metavar='path',
                         type=str,
-                        help='the path to the file')
+                        help='input path')
+    # optional argument: output path
+    parser.add_argument('-o',
+                        '--out_path',
+                        type=str,
+                        help='output path')
     args = parser.parse_args()
 
-    input_cpp_file = args.FilePath
-    output_cpp_file = input_cpp_file.replace(".h", "_doxygen.h")
-
-    process_cpp_file(input_cpp_file, output_cpp_file)
+    if os.path.isdir(args.in_path):
+        # Process all C++ header files in the directory
+        input_dir_path = args.in_path
+        output_dir_path = args.out_path if args.out_path else input_dir_path + "_doxygen"
+        process_source_dir(input_dir_path, output_dir_path)
+    elif os.path.isfile(args.in_path):
+        # Process a single C++ header file
+        input_cpp_file = args.in_path
+        if not input_cpp_file.endswith('.h'):
+            print("Error: input file is not a C++ header file.")
+            return
+        output_cpp_file = args.out_path if args.out_path else input_cpp_file.replace(".h", "_doxygen.h")
+        process_cpp_file(input_cpp_file, output_cpp_file)
+    else:
+        print("Error: input path is neither a file nor a directory.")
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
