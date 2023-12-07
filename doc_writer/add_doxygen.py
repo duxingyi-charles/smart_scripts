@@ -1,35 +1,10 @@
 import argparse
 from openai import OpenAI
-import re
+from analyze_cpp import *
+
 import json
 import os
 import shutil
-
-
-def clean_code_content(code_content):
-    """
-    Cleans the C++ code content by removing unnecessary spaces, consecutive newlines, etc.
-
-    :param code_content: String containing the entire code content.
-    :return: Cleaned code content.
-    """
-    print("length (before clean): ", len(code_content))
-    # Remove excess white spaces within lines
-    code_content = re.sub(r'[ \t]+', ' ', code_content)
-
-    # Remove unnecessary spaces before and after braces
-    code_content = re.sub(r'\s*{\s*', ' { ', code_content)
-    code_content = re.sub(r'\s*}\s*', ' } ', code_content)
-
-    # Normalize newlines (remove consecutive newlines)
-    code_content = re.sub(r'\n\s*\n', '\n', code_content)
-
-    # Trim leading and trailing spaces on each line
-    code_content = '\n'.join(line.strip() for line in code_content.split('\n'))
-
-    print("length (after clean): ", len(code_content))
-
-    return code_content
 
 def add_doxygen_json(code_content):
     """
@@ -199,7 +174,7 @@ def process_cpp_file(input_file_path, output_file_path):
     with open(input_file_path, 'r') as file:
         cpp_code = file.read()
 
-    # cpp_code = clean_code_content(cpp_code)
+    # cpp_code = clean_code(cpp_code)
     doc_code = add_doxygen_multi(cpp_code)
     if doc_code:
         with open(output_file_path, 'w') as file:
