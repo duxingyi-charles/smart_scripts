@@ -96,11 +96,15 @@ def add_doxygen_multi(code_content):
     chat_history = [
             {
                 "role": "system",
-                "content": "You are a C++ programmer and good at writing doxygen documentation for C++ headers. \
-                The user will provide the content of a C++ header file, and you will return the code with doxygen documentation added. \
-                You should only include the documented code in your response, without any explanation. \
-                If you cannot finish the task in one response, you should return the code with doxygen documentation added so far \
-                and add '//continue' as the last line of your response."
+                "content": 
+                """As a skilled C++ programmer with expertise in Doxygen documentation, your task is to add Doxygen comments to a C++ file provided by the user. 
+                What to Do:
+                1. Return the complete C++ code with Doxygen documentation included.
+                2. If the task is incomplete within one response, ensure to add Doxygen comments up to where you've reached and end the response with '//continue'.
+                What Not to Do:
+                1. Do not alter the original C++ code provided by the user.
+                2. Do not alter the existing Doxygen comments provided by the user.
+                3. Do not add explanation in your response. """
             },
             {
                 "role": "user",
